@@ -23,6 +23,13 @@ class TaskCreate(BaseModel):
     status: Literal["Pending", "In Progress", "Completed"] = "Pending"
 
 
+class TaskUpdate(BaseModel):
+    title: str | None = None
+    deadline: str | None = None
+    priority: Literal["Low", "Medium", "High"] | None = None
+    status: Literal["Pending", "In Progress", "Completed"] | None = None
+
+
 class Task(TaskCreate):
     id: int
 
@@ -65,6 +72,32 @@ def create_task(task: TaskCreate):
     next_task_id += 1
 
     return new_task
+
+
+@app.put("/tasks/{task_id}", response_model=Task)
+def update_task(task_id: int, task_update: TaskUpdate):
+    for index, task in enumerate(tasks):
+        if task.id == task_id:
+            updated_title = task_update.title if task_update.title is not None else task.title
+            updated_deadline = task_update.deadline if task_update.deadline is not None else task.deadline
+            updated_priority = task_update.priority if task_update.priority is not None else task.priority
+            updated_status = task_update.status if task_update.status is not None else task.status
+
+            if updated_title.strip() == "":
+                raise HTTPException(status_code=400, detail="Task title cannot be empty")
+
+            updated_task = Task(
+                id=task.id,
+                title=updated_title,
+                deadline=updated_deadline,
+                priority=updated_priority,
+                status=updated_status,
+            )
+
+            tasks[index] = updated_task
+            return updated_task
+
+    raise HTTPException(status_code=404, detail="Task not found")
 
 
 @app.delete("/tasks/{task_id}")

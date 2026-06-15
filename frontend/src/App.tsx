@@ -84,7 +84,6 @@ function App() {
       }
 
       const createdTask = await response.json();
-
       setTasks([...tasks, createdTask]);
 
       setTitle("");
@@ -93,6 +92,35 @@ function App() {
       setStatus("Pending");
     } catch {
       alert("Could not add task");
+    }
+  }
+
+  async function handleUpdateTaskStatus(
+    taskId: number,
+    newStatus: Task["status"]
+  ) {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      const updatedTask = await response.json();
+
+      const updatedTasks = tasks.map((task) =>
+        task.id === taskId ? updatedTask : task
+      );
+
+      setTasks(updatedTasks);
+    } catch {
+      alert("Could not update task status");
     }
   }
 
@@ -197,7 +225,24 @@ function App() {
                   <h3>{task.title}</h3>
                   <p>Deadline: {task.deadline || "No deadline selected"}</p>
                   <p>Priority: {task.priority}</p>
-                  <p>Status: {task.status}</p>
+
+                  <label className="task-status-control">
+                    Status
+                    <select
+                      className="status-select"
+                      value={task.status}
+                      onChange={(event) =>
+                        handleUpdateTaskStatus(
+                          task.id,
+                          event.target.value as Task["status"]
+                        )
+                      }
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </label>
                 </div>
 
                 <button
