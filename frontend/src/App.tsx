@@ -10,9 +10,17 @@ type Task = {
   status: "Pending" | "In Progress" | "Completed";
 };
 
+type TaskCreate = {
+  title: string;
+  deadline: string;
+  priority: "Low" | "Medium" | "High";
+  status: "Pending" | "In Progress" | "Completed";
+};
+
 function App() {
   const [apiMessage, setApiMessage] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -20,13 +28,34 @@ function App() {
   const [status, setStatus] = useState<Task["status"]>("Pending");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/")
-      .then((response) => response.json())
-      .then((data) => setApiMessage(data.message))
-      .catch(() => setApiMessage("Backend not connected"));
+    fetchBackendStatus();
+    fetchTasks();
   }, []);
 
-  function handleAddTask(event: FormEvent<HTMLFormElement>) {
+  async function fetchBackendStatus() {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/");
+      const data = await response.json();
+      setApiMessage(data.message);
+    } catch {
+      setApiMessage("Backend not connected");
+    }
+  }
+
+  async function fetchTasks() {
+    try {
+      setLoading(true);
+      const response = await fetch("http://127.0.0.1:8000/tasks");
+      const data = await response.json();
+      setTasks(data);
+    } catch {
+      alert("Could not load tasks from backend");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (title.trim() === "") {
@@ -34,25 +63,54 @@ function App() {
       return;
     }
 
-    const newTask: Task = {
-      id: Date.now(),
+    const newTask: TaskCreate = {
       title,
       deadline,
       priority,
       status,
     };
 
-    setTasks([...tasks, newTask]);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newTask),
+      });
 
-    setTitle("");
-    setDeadline("");
-    setPriority("Medium");
-    setStatus("Pending");
+      if (!response.ok) {
+        throw new Error("Failed to add task");
+      }
+
+      const createdTask = await response.json();
+
+      setTasks([...tasks, createdTask]);
+
+      setTitle("");
+      setDeadline("");
+      setPriority("Medium");
+      setStatus("Pending");
+    } catch {
+      alert("Could not add task");
+    }
   }
 
-  function handleDeleteTask(taskId: number) {
-    const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    setTasks(updatedTasks);
+  async function handleDeleteTask(taskId: number) {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete task");
+      }
+
+      const updatedTasks = tasks.filter((task) => task.id !== taskId);
+      setTasks(updatedTasks);
+    } catch {
+      alert("Could not delete task");
+    }
   }
 
   return (
@@ -128,7 +186,9 @@ function App() {
         <div className="task-list">
           <h2>Your Tasks</h2>
 
-          {tasks.length === 0 ? (
+          {loading ? (
+            <p className="empty-message">Loading tasks...</p>
+          ) : tasks.length === 0 ? (
             <p className="empty-message">No tasks added yet.</p>
           ) : (
             tasks.map((task) => (
