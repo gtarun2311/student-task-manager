@@ -199,3 +199,39 @@ h1 {
 .cancel-button:hover {
   background: #4b5563;
 }
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.filter-button {
+  padding: 9px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: white;
+  color: #374151;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.filter-button:hover {
+  background: #f3f4f6;
+}
+
+.active-filter {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.active-filter:hover {
+  background: #1d4ed8;
+}
+
+.filter-summary {
+  margin-bottom: 18px;
+  color: #6b7280;
+  font-size: 14px;
+}

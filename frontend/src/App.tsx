@@ -17,6 +17,8 @@ type TaskCreate = {
   status: "Pending" | "In Progress" | "Completed";
 };
 
+type TaskFilter = "All" | "Pending" | "In Progress" | "Completed";
+
 function App() {
   const [apiMessage, setApiMessage] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -28,6 +30,12 @@ function App() {
   const [status, setStatus] = useState<Task["status"]>("Pending");
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [activeFilter, setActiveFilter] = useState<TaskFilter>("All");
+
+  const filteredTasks =
+    activeFilter === "All"
+      ? tasks
+      : tasks.filter((task) => task.status === activeFilter);
 
   useEffect(() => {
     fetchBackendStatus();
@@ -293,12 +301,62 @@ function App() {
         <div className="task-list">
           <h2>Your Tasks</h2>
 
+          <div className="filter-bar">
+            <button
+              className={
+                activeFilter === "All" ? "filter-button active-filter" : "filter-button"
+              }
+              onClick={() => setActiveFilter("All")}
+            >
+              All
+            </button>
+
+            <button
+              className={
+                activeFilter === "Pending"
+                  ? "filter-button active-filter"
+                  : "filter-button"
+              }
+              onClick={() => setActiveFilter("Pending")}
+            >
+              Pending
+            </button>
+
+            <button
+              className={
+                activeFilter === "In Progress"
+                  ? "filter-button active-filter"
+                  : "filter-button"
+              }
+              onClick={() => setActiveFilter("In Progress")}
+            >
+              In Progress
+            </button>
+
+            <button
+              className={
+                activeFilter === "Completed"
+                  ? "filter-button active-filter"
+                  : "filter-button"
+              }
+              onClick={() => setActiveFilter("Completed")}
+            >
+              Completed
+            </button>
+          </div>
+
+          <p className="filter-summary">
+            Showing {filteredTasks.length} of {tasks.length} tasks
+          </p>
+
           {loading ? (
             <p className="empty-message">Loading tasks...</p>
           ) : tasks.length === 0 ? (
             <p className="empty-message">No tasks added yet.</p>
+          ) : filteredTasks.length === 0 ? (
+            <p className="empty-message">No tasks found for this filter.</p>
           ) : (
-            tasks.map((task) => (
+            filteredTasks.map((task) => (
               <article className="task-card" key={task.id}>
                 <div>
                   <h3>{task.title}</h3>
