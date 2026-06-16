@@ -31,11 +31,16 @@ function App() {
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<TaskFilter>("All");
+  const [searchText, setSearchText] = useState("");
 
   const filteredTasks =
     activeFilter === "All"
       ? tasks
       : tasks.filter((task) => task.status === activeFilter);
+
+  const visibleTasks = filteredTasks.filter((task) =>
+    task.title.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   useEffect(() => {
     fetchBackendStatus();
@@ -301,10 +306,24 @@ function App() {
         <div className="task-list">
           <h2>Your Tasks</h2>
 
+          <div className="search-box">
+            <label>
+              Search Tasks
+              <input
+                type="text"
+                placeholder="Search by task title..."
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+              />
+            </label>
+          </div>
+
           <div className="filter-bar">
             <button
               className={
-                activeFilter === "All" ? "filter-button active-filter" : "filter-button"
+                activeFilter === "All"
+                  ? "filter-button active-filter"
+                  : "filter-button"
               }
               onClick={() => setActiveFilter("All")}
             >
@@ -346,17 +365,17 @@ function App() {
           </div>
 
           <p className="filter-summary">
-            Showing {filteredTasks.length} of {tasks.length} tasks
+            Showing {visibleTasks.length} of {tasks.length} tasks
           </p>
 
           {loading ? (
             <p className="empty-message">Loading tasks...</p>
           ) : tasks.length === 0 ? (
             <p className="empty-message">No tasks added yet.</p>
-          ) : filteredTasks.length === 0 ? (
-            <p className="empty-message">No tasks found for this filter.</p>
+          ) : visibleTasks.length === 0 ? (
+            <p className="empty-message">No tasks found.</p>
           ) : (
-            filteredTasks.map((task) => (
+            visibleTasks.map((task) => (
               <article className="task-card" key={task.id}>
                 <div>
                   <h3>{task.title}</h3>

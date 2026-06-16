@@ -235,3 +235,20 @@ h1 {
   color: #6b7280;
   font-size: 14px;
 }
+.search-box {
+  margin-bottom: 18px;
+}
+
+.search-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: bold;
+}
+
+.search-box input {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+}
