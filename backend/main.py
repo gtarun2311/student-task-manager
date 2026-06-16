@@ -1,8 +1,12 @@
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from database import Base, engine, get_db
+from models import TaskModel
 
 
 app = FastAPI(title="Student Task Manager API")
@@ -14,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+Base.metadata.create_all(bind=engine)
 
 
 class TaskCreate(BaseModel):
@@ -30,12 +37,16 @@ class TaskUpdate(BaseModel):
     status: Literal["Pending", "In Progress", "Completed"] | None = None
 
 
-class Task(TaskCreate):
+class TaskResponse(BaseModel):
     id: int
+    title: str
+    deadline: str
+    priority: str
+    status: str
 
-
-tasks: list[Task] = []
-next_task_id = 1
+    model_config = {
+        "from_attributes": True
+    }
 
 
 @app.get("/")
@@ -48,66 +59,73 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.get("/tasks", response_model=list[Task])
-def get_tasks():
+@app.get("/tasks", response_model=list[TaskResponse])
+def get_tasks(db: Session = Depends(get_db)):
+    tasks = db.query(TaskModel).order_by(TaskModel.id).all()
     return tasks
 
 
-@app.post("/tasks", response_model=Task)
-def create_task(task: TaskCreate):
-    global next_task_id
-
+@app.post("/tasks", response_model=TaskResponse)
+def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     if task.title.strip() == "":
         raise HTTPException(status_code=400, detail="Task title is required")
 
-    new_task = Task(
-        id=next_task_id,
+    new_task = TaskModel(
         title=task.title,
         deadline=task.deadline,
         priority=task.priority,
         status=task.status,
     )
 
-    tasks.append(new_task)
-    next_task_id += 1
+    db.add(new_task)
+    db.commit()
+    db.refresh(new_task)
 
     return new_task
 
 
-@app.put("/tasks/{task_id}", response_model=Task)
-def update_task(task_id: int, task_update: TaskUpdate):
-    for index, task in enumerate(tasks):
-        if task.id == task_id:
-            updated_title = task_update.title if task_update.title is not None else task.title
-            updated_deadline = task_update.deadline if task_update.deadline is not None else task.deadline
-            updated_priority = task_update.priority if task_update.priority is not None else task.priority
-            updated_status = task_update.status if task_update.status is not None else task.status
+@app.put("/tasks/{task_id}", response_model=TaskResponse)
+def update_task(
+    task_id: int,
+    task_update: TaskUpdate,
+    db: Session = Depends(get_db),
+):
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
 
-            if updated_title.strip() == "":
-                raise HTTPException(status_code=400, detail="Task title cannot be empty")
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-            updated_task = Task(
-                id=task.id,
-                title=updated_title,
-                deadline=updated_deadline,
-                priority=updated_priority,
-                status=updated_status,
-            )
+    if task_update.title is not None:
+        if task_update.title.strip() == "":
+            raise HTTPException(status_code=400, detail="Task title cannot be empty")
+        task.title = task_update.title
 
-            tasks[index] = updated_task
-            return updated_task
+    if task_update.deadline is not None:
+        task.deadline = task_update.deadline
 
-    raise HTTPException(status_code=404, detail="Task not found")
+    if task_update.priority is not None:
+        task.priority = task_update.priority
+
+    if task_update.status is not None:
+        task.status = task_update.status
+
+    db.commit()
+    db.refresh(task)
+
+    return task
 
 
 @app.delete("/tasks/{task_id}")
-def delete_task(task_id: int):
-    for index, task in enumerate(tasks):
-        if task.id == task_id:
-            deleted_task = tasks.pop(index)
-            return {
-                "message": "Task deleted successfully",
-                "task": deleted_task,
-            }
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
 
-    raise HTTPException(status_code=404, detail="Task not found")
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    db.delete(task)
+    db.commit()
+
+    return {
+        "message": "Task deleted successfully",
+        "task_id": task_id,
+    }
