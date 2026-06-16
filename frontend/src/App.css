@@ -163,3 +163,39 @@ h1 {
   border-radius: 8px;
   font-size: 14px;
 }
+.task-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-button {
+  height: fit-content;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #16a34a;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.edit-button:hover {
+  background: #15803d;
+}
+
+.cancel-button {
+  margin-top: 0;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #6b7280;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #4b5563;
+}

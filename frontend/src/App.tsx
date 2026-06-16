@@ -27,6 +27,8 @@ function App() {
   const [priority, setPriority] = useState<Task["priority"]>("Medium");
   const [status, setStatus] = useState<Task["status"]>("Pending");
 
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+
   useEffect(() => {
     fetchBackendStatus();
     fetchTasks();
@@ -55,7 +57,15 @@ function App() {
     }
   }
 
-  async function handleAddTask(event: FormEvent<HTMLFormElement>) {
+  function resetForm() {
+    setTitle("");
+    setDeadline("");
+    setPriority("Medium");
+    setStatus("Pending");
+    setEditingTaskId(null);
+  }
+
+  async function handleSubmitTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (title.trim() === "") {
@@ -63,6 +73,14 @@ function App() {
       return;
     }
 
+    if (editingTaskId === null) {
+      await handleAddTask();
+    } else {
+      await handleSaveEditedTask();
+    }
+  }
+
+  async function handleAddTask() {
     const newTask: TaskCreate = {
       title,
       deadline,
@@ -85,13 +103,58 @@ function App() {
 
       const createdTask = await response.json();
       setTasks([...tasks, createdTask]);
-
-      setTitle("");
-      setDeadline("");
-      setPriority("Medium");
-      setStatus("Pending");
+      resetForm();
     } catch {
       alert("Could not add task");
+    }
+  }
+
+  function handleStartEditing(task: Task) {
+    setEditingTaskId(task.id);
+    setTitle(task.title);
+    setDeadline(task.deadline);
+    setPriority(task.priority);
+    setStatus(task.status);
+  }
+
+  async function handleSaveEditedTask() {
+    if (editingTaskId === null) {
+      return;
+    }
+
+    const updatedTaskData: TaskCreate = {
+      title,
+      deadline,
+      priority,
+      status,
+    };
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/tasks/${editingTaskId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedTaskData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      const updatedTask = await response.json();
+
+      const updatedTasks = tasks.map((task) =>
+        task.id === editingTaskId ? updatedTask : task
+      );
+
+      setTasks(updatedTasks);
+      resetForm();
+    } catch {
+      alert("Could not update task");
     }
   }
 
@@ -109,7 +172,7 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update task");
+        throw new Error("Failed to update task status");
       }
 
       const updatedTask = await response.json();
@@ -136,6 +199,10 @@ function App() {
 
       const updatedTasks = tasks.filter((task) => task.id !== taskId);
       setTasks(updatedTasks);
+
+      if (editingTaskId === taskId) {
+        resetForm();
+      }
     } catch {
       alert("Could not delete task");
     }
@@ -158,8 +225,8 @@ function App() {
       </header>
 
       <section className="task-section">
-        <form className="task-form" onSubmit={handleAddTask}>
-          <h2>Add New Task</h2>
+        <form className="task-form" onSubmit={handleSubmitTask}>
+          <h2>{editingTaskId === null ? "Add New Task" : "Edit Task"}</h2>
 
           <label>
             Task Title
@@ -208,7 +275,19 @@ function App() {
             </select>
           </label>
 
-          <button type="submit">Add Task</button>
+          <button type="submit">
+            {editingTaskId === null ? "Add Task" : "Save Changes"}
+          </button>
+
+          {editingTaskId !== null && (
+            <button
+              type="button"
+              className="cancel-button"
+              onClick={resetForm}
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
 
         <div className="task-list">
@@ -245,12 +324,21 @@ function App() {
                   </label>
                 </div>
 
-                <button
-                  className="delete-button"
-                  onClick={() => handleDeleteTask(task.id)}
-                >
-                  Delete
-                </button>
+                <div className="task-actions">
+                  <button
+                    className="edit-button"
+                    onClick={() => handleStartEditing(task)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="delete-button"
+                    onClick={() => handleDeleteTask(task.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </article>
             ))
           )}
