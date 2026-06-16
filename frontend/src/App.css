@@ -269,3 +269,43 @@ h1 {
   border-radius: 8px;
   font-size: 15px;
 }
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.dashboard-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard-number {
+  font-size: 26px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.dashboard-label {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: bold;
+}
+
+@media (max-width: 900px) {
+  .dashboard-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}

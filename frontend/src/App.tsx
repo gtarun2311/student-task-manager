@@ -62,7 +62,14 @@ function App() {
   const searchedTasks = filteredTasks.filter((task) =>
     task.title.toLowerCase().includes(searchText.toLowerCase())
   );
-
+const totalTasks = tasks.length;
+const pendingTasks = tasks.filter((task) => task.status === "Pending").length;
+const inProgressTasks = tasks.filter(
+  (task) => task.status === "In Progress"
+).length;
+const completedTasks = tasks.filter(
+  (task) => task.status === "Completed"
+).length;
   const visibleTasks = [...searchedTasks].sort((taskA, taskB) => {
     if (sortOption === "Newest") {
       return taskB.id - taskA.id;
@@ -346,6 +353,27 @@ function App() {
 
         <div className="task-list">
           <h2>Your Tasks</h2>
+          <div className="dashboard-cards">
+  <div className="dashboard-card">
+    <span className="dashboard-number">{totalTasks}</span>
+    <span className="dashboard-label">Total Tasks</span>
+  </div>
+
+  <div className="dashboard-card">
+    <span className="dashboard-number">{pendingTasks}</span>
+    <span className="dashboard-label">Pending</span>
+  </div>
+
+  <div className="dashboard-card">
+    <span className="dashboard-number">{inProgressTasks}</span>
+    <span className="dashboard-label">In Progress</span>
+  </div>
+
+  <div className="dashboard-card">
+    <span className="dashboard-number">{completedTasks}</span>
+    <span className="dashboard-label">Completed</span>
+  </div>
+</div>
 
           <div className="search-box">
             <label>
