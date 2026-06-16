@@ -19,6 +19,12 @@ type TaskCreate = {
 
 type TaskFilter = "All" | "Pending" | "In Progress" | "Completed";
 
+type SortOption =
+  | "Newest"
+  | "Deadline"
+  | "Priority High"
+  | "Priority Low";
+
 function App() {
   const [apiMessage, setApiMessage] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -32,15 +38,50 @@ function App() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<TaskFilter>("All");
   const [searchText, setSearchText] = useState("");
+  const [sortOption, setSortOption] = useState<SortOption>("Newest");
+
+  const priorityValue = {
+    High: 3,
+    Medium: 2,
+    Low: 1,
+  };
+
+  function getDeadlineTime(taskDeadline: string) {
+    if (!taskDeadline) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    return new Date(taskDeadline).getTime();
+  }
 
   const filteredTasks =
     activeFilter === "All"
       ? tasks
       : tasks.filter((task) => task.status === activeFilter);
 
-  const visibleTasks = filteredTasks.filter((task) =>
+  const searchedTasks = filteredTasks.filter((task) =>
     task.title.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const visibleTasks = [...searchedTasks].sort((taskA, taskB) => {
+    if (sortOption === "Newest") {
+      return taskB.id - taskA.id;
+    }
+
+    if (sortOption === "Deadline") {
+      return getDeadlineTime(taskA.deadline) - getDeadlineTime(taskB.deadline);
+    }
+
+    if (sortOption === "Priority High") {
+      return priorityValue[taskB.priority] - priorityValue[taskA.priority];
+    }
+
+    if (sortOption === "Priority Low") {
+      return priorityValue[taskA.priority] - priorityValue[taskB.priority];
+    }
+
+    return 0;
+  });
 
   useEffect(() => {
     fetchBackendStatus();
@@ -315,6 +356,23 @@ function App() {
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
               />
+            </label>
+          </div>
+
+          <div className="sort-box">
+            <label>
+              Sort Tasks
+              <select
+                value={sortOption}
+                onChange={(event) =>
+                  setSortOption(event.target.value as SortOption)
+                }
+              >
+                <option value="Newest">Newest first</option>
+                <option value="Deadline">Deadline nearest first</option>
+                <option value="Priority High">Priority high to low</option>
+                <option value="Priority Low">Priority low to high</option>
+              </select>
             </label>
           </div>
 
