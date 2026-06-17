@@ -391,13 +391,26 @@ function App() {
 
     showSuccess("Logged out successfully.");
   }
-
+/*
+  This function creates authorization headers.
+  Backend uses this token to know which user is logged in.
+*/
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${authToken}`,
+  };
+}
   /*
     Get backend status from root route.
   */
   async function fetchBackendStatus() {
     try {
-      const response = await fetch("http://127.0.0.1:8000/");
+      const response = await fetch("http://127.0.0.1:8000/tasks", {
+  headers: {
+    Authorization: `Bearer ${authToken}`,
+  },
+});
       const data = await response.json();
       setApiMessage(data.message);
     } catch {
@@ -503,9 +516,7 @@ function App() {
     try {
       const response = await fetch("http://127.0.0.1:8000/tasks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(newTask),
       });
 
@@ -556,9 +567,7 @@ function App() {
         `http://127.0.0.1:8000/tasks/${editingTaskId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify(updatedTaskData),
         }
       );
@@ -591,9 +600,7 @@ function App() {
     try {
       const response = await fetch(`http://127.0.0.1:8000/tasks/${taskId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -621,6 +628,7 @@ function App() {
     try {
       const response = await fetch(`http://127.0.0.1:8000/tasks/${taskId}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
