@@ -1,0 +1,15 @@
+# Do not copy virtual environment into Docker.
+venv
+
+# Do not copy Python cache files.
+__pycache__
+*.pyc
+
+# Do not copy local database into Docker image.
+student_tasks.db
+
+# Do not copy Docker database folder into image.
+docker-data
+
+# Do not copy environment files.
+.env
