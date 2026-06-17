@@ -4,7 +4,6 @@ import "./App.css";
 
 /*
   Task type describes one complete task coming from backend.
-  This includes id because database creates id for each task.
 */
 type Task = {
   id: number;
@@ -15,8 +14,7 @@ type Task = {
 };
 
 /*
-  TaskCreate type describes task data we send to backend
-  when adding or editing a task.
+  TaskCreate type is used when sending task data to backend.
 */
 type TaskCreate = {
   title: string;
@@ -26,19 +24,56 @@ type TaskCreate = {
 };
 
 /*
-  These are the filter options available in the app.
+  AuthMode controls whether user sees Login form or Register form.
+*/
+type AuthMode = "login" | "register";
+
+/*
+  Filter options for tasks.
 */
 type TaskFilter = "All" | "Pending" | "In Progress" | "Completed";
 
 /*
-  These are the sorting options available in the app.
+  Sorting options for tasks.
 */
 type SortOption = "Newest" | "Deadline" | "Priority High" | "Priority Low";
 
 function App() {
   /*
+    Auth token is saved in localStorage so user stays logged in after refresh.
+  */
+  const [authToken, setAuthToken] = useState(
+    localStorage.getItem("authToken") || ""
+  );
+
+  /*
+    We store email only to show who is logged in.
+    Day 17 will improve this with real user-specific tasks.
+  */
+  const [loggedInEmail, setLoggedInEmail] = useState(
+    localStorage.getItem("loggedInEmail") || ""
+  );
+
+  /*
+    authMode decides whether login form or register form is visible.
+  */
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+
+  /*
+    Login form states.
+  */
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  /*
+    Register form states.
+  */
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+
+  /*
     Backend connection message.
-    Example: "Student Task Manager API is running"
   */
   const [apiMessage, setApiMessage] = useState("");
 
@@ -48,12 +83,12 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   /*
-    loading becomes true while tasks are being fetched from backend.
+    loading becomes true while tasks are loading.
   */
   const [loading, setLoading] = useState(false);
 
   /*
-    These states store form input values.
+    Task form input states.
   */
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -61,37 +96,31 @@ function App() {
   const [status, setStatus] = useState<Task["status"]>("Pending");
 
   /*
-    editingTaskId tells us whether user is adding a new task or editing an existing task.
-    null means add mode.
-    number means edit mode.
+    editingTaskId tells whether we are editing a task.
+    null means we are adding a new task.
   */
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
   /*
-    activeFilter controls which status filter is selected.
+    Filter, search, and sort states.
   */
   const [activeFilter, setActiveFilter] = useState<TaskFilter>("All");
-
-  /*
-    searchText stores what user types in search box.
-  */
   const [searchText, setSearchText] = useState("");
-
-  /*
-    sortOption stores selected sorting option.
-  */
   const [sortOption, setSortOption] = useState<SortOption>("Newest");
 
   /*
-    errorMessage is shown when something goes wrong.
-    successMessage is shown when an action works.
+    Error and success messages shown inside the app.
   */
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   /*
-    Priority values help us sort High, Medium, Low.
-    High should have highest value.
+    This checks whether user is logged in.
+  */
+  const isAuthenticated = authToken !== "";
+
+  /*
+    Priority values help sorting by priority.
   */
   const priorityValue = {
     High: 3,
@@ -100,8 +129,8 @@ function App() {
   };
 
   /*
-    This function converts deadline string into time number for sorting.
-    If no deadline is selected, we push that task to the bottom.
+    Convert deadline to time number for sorting.
+    If deadline is empty, task goes to the bottom.
   */
   function getDeadlineTime(taskDeadline: string) {
     if (!taskDeadline) {
@@ -112,7 +141,7 @@ function App() {
   }
 
   /*
-    Count values for dashboard cards.
+    Dashboard counts.
   */
   const totalTasks = tasks.length;
   const pendingTasks = tasks.filter((task) => task.status === "Pending").length;
@@ -124,7 +153,7 @@ function App() {
   ).length;
 
   /*
-    First apply status filter.
+    First filter tasks by status.
   */
   const filteredTasks =
     activeFilter === "All"
@@ -132,16 +161,14 @@ function App() {
       : tasks.filter((task) => task.status === activeFilter);
 
   /*
-    Then apply search filter.
-    Search is case-insensitive because we use toLowerCase().
+    Then filter tasks by search text.
   */
   const searchedTasks = filteredTasks.filter((task) =>
     task.title.toLowerCase().includes(searchText.toLowerCase())
   );
 
   /*
-    Then apply sorting.
-    We copy searchedTasks using [...] so original tasks array is not modified directly.
+    Then sort the visible tasks.
   */
   const visibleTasks = [...searchedTasks].sort((taskA, taskB) => {
     if (sortOption === "Newest") {
@@ -164,16 +191,20 @@ function App() {
   });
 
   /*
-    useEffect runs once when page opens.
-    It checks backend status and loads tasks.
+    This runs when page opens.
+    It checks backend status.
+    If user is logged in, it also loads tasks.
   */
   useEffect(() => {
     fetchBackendStatus();
-    fetchTasks();
-  }, []);
+
+    if (isAuthenticated) {
+      fetchTasks();
+    }
+  }, [isAuthenticated]);
 
   /*
-    This function shows success message and clears error message.
+    Show success message and clear error message.
   */
   function showSuccess(message: string) {
     setSuccessMessage(message);
@@ -181,7 +212,7 @@ function App() {
   }
 
   /*
-    This function shows error message and clears success message.
+    Show error message and clear success message.
   */
   function showError(message: string) {
     setErrorMessage(message);
@@ -189,9 +220,216 @@ function App() {
   }
 
   /*
-    This function validates the task form before sending data to backend.
-    It returns true if form is valid.
-    It returns false if form has error.
+    This helper reads backend error response.
+    It makes error messages more useful.
+  */
+  async function getBackendErrorMessage(response: Response) {
+    try {
+      const data = await response.json();
+
+      if (typeof data.detail === "string") {
+        return data.detail;
+      }
+
+      return "Something went wrong.";
+    } catch {
+      return "Something went wrong.";
+    }
+  }
+
+  /*
+    Validate login form before calling backend.
+  */
+  function validateLoginForm() {
+    if (loginEmail.trim() === "") {
+      showError("Email is required.");
+      return false;
+    }
+
+    if (loginPassword.trim() === "") {
+      showError("Password is required.");
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+    Validate register form before calling backend.
+  */
+  function validateRegisterForm() {
+    if (registerName.trim() === "") {
+      showError("Name is required.");
+      return false;
+    }
+
+    if (!registerEmail.includes("@")) {
+      showError("Please enter a valid email.");
+      return false;
+    }
+
+    if (registerPassword.length < 6) {
+      showError("Password must be at least 6 characters.");
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+    Register user using POST /auth/register.
+  */
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!validateRegisterForm()) {
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: registerName.trim(),
+          email: registerEmail.trim().toLowerCase(),
+          password: registerPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await getBackendErrorMessage(response);
+        throw new Error(message);
+      }
+
+      setRegisterName("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+
+      setAuthMode("login");
+      showSuccess("Account created successfully. Please login now.");
+    } catch (error) {
+      if (error instanceof Error) {
+        showError(error.message);
+      } else {
+        showError("Could not create account.");
+      }
+    }
+  }
+
+  /*
+    Login user using POST /auth/login.
+    FastAPI OAuth2PasswordRequestForm expects form data,
+    not JSON. That is why we use URLSearchParams.
+  */
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!validateLoginForm()) {
+      return;
+    }
+
+    try {
+      const loginFormData = new URLSearchParams();
+
+      /*
+        Backend expects username field.
+        We are using username as email.
+      */
+      loginFormData.append("username", loginEmail.trim().toLowerCase());
+      loginFormData.append("password", loginPassword);
+
+      const response = await fetch("http://127.0.0.1:8000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: loginFormData,
+      });
+
+      if (!response.ok) {
+        const message = await getBackendErrorMessage(response);
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+
+      /*
+        Save token and email in browser localStorage.
+      */
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("loggedInEmail", loginEmail.trim().toLowerCase());
+
+      setAuthToken(data.access_token);
+      setLoggedInEmail(loginEmail.trim().toLowerCase());
+
+      setLoginEmail("");
+      setLoginPassword("");
+
+      showSuccess("Logged in successfully.");
+    } catch (error) {
+      if (error instanceof Error) {
+        showError(error.message);
+      } else {
+        showError("Could not login.");
+      }
+    }
+  }
+
+  /*
+    Logout clears token from state and localStorage.
+  */
+  function handleLogout() {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("loggedInEmail");
+
+    setAuthToken("");
+    setLoggedInEmail("");
+    setTasks([]);
+
+    showSuccess("Logged out successfully.");
+  }
+
+  /*
+    Get backend status from root route.
+  */
+  async function fetchBackendStatus() {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/");
+      const data = await response.json();
+      setApiMessage(data.message);
+    } catch {
+      setApiMessage("Backend not connected");
+    }
+  }
+
+  /*
+    Load tasks from backend.
+    Day 17 will send auth token and load only current user's tasks.
+  */
+  async function fetchTasks() {
+    try {
+      setLoading(true);
+
+      const response = await fetch("http://127.0.0.1:8000/tasks");
+
+      if (!response.ok) {
+        throw new Error("Failed to load tasks");
+      }
+
+      const data = await response.json();
+      setTasks(data);
+    } catch {
+      showError("Could not load tasks from backend.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /*
+    Validate task form.
   */
   function validateTaskForm() {
     const cleanedTitle = title.trim();
@@ -223,42 +461,7 @@ function App() {
   }
 
   /*
-    This function gets backend status from FastAPI root route.
-  */
-  async function fetchBackendStatus() {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/");
-      const data = await response.json();
-      setApiMessage(data.message);
-    } catch {
-      setApiMessage("Backend not connected");
-    }
-  }
-
-  /*
-    This function loads all tasks from backend database.
-  */
-  async function fetchTasks() {
-    try {
-      setLoading(true);
-
-      const response = await fetch("http://127.0.0.1:8000/tasks");
-
-      if (!response.ok) {
-        throw new Error("Failed to load tasks");
-      }
-
-      const data = await response.json();
-      setTasks(data);
-    } catch {
-      showError("Could not load tasks from backend.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /*
-    This function clears the form and exits edit mode.
+    Clear task form and exit edit mode.
   */
   function resetForm() {
     setTitle("");
@@ -269,8 +472,8 @@ function App() {
   }
 
   /*
-    This function runs when user submits the form.
-    It decides whether to add new task or save edited task.
+    Submit task form.
+    It decides whether to add or edit task.
   */
   async function handleSubmitTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -287,7 +490,7 @@ function App() {
   }
 
   /*
-    This function sends POST request to backend to create a new task.
+    Add new task using backend API.
   */
   async function handleAddTask() {
     const newTask: TaskCreate = {
@@ -321,8 +524,7 @@ function App() {
   }
 
   /*
-    This function starts edit mode.
-    It fills the form with selected task details.
+    Start edit mode by filling form with task details.
   */
   function handleStartEditing(task: Task) {
     setEditingTaskId(task.id);
@@ -335,7 +537,7 @@ function App() {
   }
 
   /*
-    This function sends PUT request to backend to update full task details.
+    Save edited task using PUT API.
   */
   async function handleSaveEditedTask() {
     if (editingTaskId === null) {
@@ -380,7 +582,7 @@ function App() {
   }
 
   /*
-    This function updates only task status from the task card dropdown.
+    Update only task status from task card dropdown.
   */
   async function handleUpdateTaskStatus(
     taskId: number,
@@ -413,7 +615,7 @@ function App() {
   }
 
   /*
-    This function deletes a task from backend and frontend state.
+    Delete task using DELETE API.
   */
   async function handleDeleteTask(taskId: number) {
     try {
@@ -438,6 +640,114 @@ function App() {
     }
   }
 
+  /*
+    If user is not logged in, show login/register page.
+  */
+  if (!isAuthenticated) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card">
+          <h1>Student Task Manager</h1>
+          <p className="subtitle">
+            Login or create an account to manage your study tasks.
+          </p>
+
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
+          {successMessage && <p className="success-message">{successMessage}</p>}
+
+          <div className="auth-tabs">
+            <button
+              className={authMode === "login" ? "auth-tab active-auth-tab" : "auth-tab"}
+              onClick={() => {
+                setAuthMode("login");
+                setErrorMessage("");
+                setSuccessMessage("");
+              }}
+            >
+              Login
+            </button>
+
+            <button
+              className={
+                authMode === "register" ? "auth-tab active-auth-tab" : "auth-tab"
+              }
+              onClick={() => {
+                setAuthMode("register");
+                setErrorMessage("");
+                setSuccessMessage("");
+              }}
+            >
+              Register
+            </button>
+          </div>
+
+          {authMode === "login" ? (
+            <form className="auth-form" onSubmit={handleLogin}>
+              <label>
+                Email
+                <input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={loginEmail}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                />
+              </label>
+
+              <label>
+                Password
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                />
+              </label>
+
+              <button type="submit">Login</button>
+            </form>
+          ) : (
+            <form className="auth-form" onSubmit={handleRegister}>
+              <label>
+                Name
+                <input
+                  type="text"
+                  placeholder="Sunny"
+                  value={registerName}
+                  onChange={(event) => setRegisterName(event.target.value)}
+                />
+              </label>
+
+              <label>
+                Email
+                <input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={registerEmail}
+                  onChange={(event) => setRegisterEmail(event.target.value)}
+                />
+              </label>
+
+              <label>
+                Password
+                <input
+                  type="password"
+                  placeholder="At least 6 characters"
+                  value={registerPassword}
+                  onChange={(event) => setRegisterPassword(event.target.value)}
+                />
+              </label>
+
+              <button type="submit">Create Account</button>
+            </form>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  /*
+    If user is logged in, show task manager app.
+  */
   return (
     <main className="app-container">
       <header className="app-header">
@@ -446,11 +756,15 @@ function App() {
           <p className="subtitle">
             Plan your coursework, track deadlines, and stay organized in one place.
           </p>
+          <p className="logged-in-text">Logged in as {loggedInEmail}</p>
         </div>
 
         <section className="status-card">
           <h2>Backend Status</h2>
           <p>{apiMessage}</p>
+          <button className="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
         </section>
       </header>
 

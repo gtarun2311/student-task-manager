@@ -439,3 +439,131 @@ h1 {
   border: 1px solid #bbf7d0;
   font-weight: bold;
 }
+/* 
+  Authentication page container.
+  This centers the login/register card on the screen.
+*/
+.auth-page {
+  min-height: 100vh;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  font-family: Arial, sans-serif;
+}
+
+/* 
+  Login/register card.
+*/
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 32px;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+}
+
+/* 
+  Login/Register switch buttons.
+*/
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 22px 0;
+}
+
+/* Normal tab button */
+.auth-tab {
+  padding: 11px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  color: #374151;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Active selected tab */
+.active-auth-tab {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Login/register form layout */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Auth labels */
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: bold;
+  color: #374151;
+}
+
+/* Auth inputs */
+.auth-form input {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+}
+
+/* Auth input focus effect */
+.auth-form input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Login/register submit button */
+.auth-form button {
+  margin-top: 6px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Auth button hover */
+.auth-form button:hover {
+  background: #1d4ed8;
+}
+
+/* Shows logged in user email */
+.logged-in-text {
+  margin-top: 12px;
+  color: #2563eb;
+  font-weight: bold;
+}
+
+/* Logout button inside backend status card */
+.logout-button {
+  margin-top: 14px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #111827;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Logout hover effect */
+.logout-button:hover {
+  background: #374151;
+}
