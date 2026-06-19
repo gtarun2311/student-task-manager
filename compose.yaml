@@ -1,0 +1,45 @@
+# Docker Compose file for Student Task Manager.
+# This file runs backend and frontend together.
+
+services:
+  # Backend service runs the FastAPI app.
+  backend:
+    # Build backend image using backend/Dockerfile.
+    build:
+      context: ./backend
+
+    # Name of backend container.
+    container_name: student-task-backend
+
+    # Connect laptop port 8000 to container port 8000.
+    ports:
+      - "8000:8000"
+
+    # Environment variable used by database.py.
+    # This tells backend where SQLite database should be stored inside Docker.
+    environment:
+      DATABASE_URL: sqlite:////app/data/student_tasks.db
+
+    # Volume keeps database data even if container is removed.
+    # Left side is your laptop folder.
+    # Right side is folder inside Docker container.
+    volumes:
+      - ./backend/docker-data:/app/data
+
+  # Frontend service runs the React app using Nginx.
+  frontend:
+    # Build frontend image using frontend/Dockerfile.
+    build:
+      context: ./frontend
+
+    # Name of frontend container.
+    container_name: student-task-frontend
+
+    # Connect laptop port 3000 to container port 80.
+    ports:
+      - "3000:80"
+
+    # Start backend before frontend.
+    # This does not mean backend is fully ready, but it starts first.
+    depends_on:
+      - backend
