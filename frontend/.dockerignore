@@ -1,0 +1,13 @@
+# Do not copy node_modules into Docker.
+# Docker will install dependencies itself.
+node_modules
+
+# Do not copy build output.
+dist
+
+# Do not copy local environment files.
+.env
+
+# Do not copy cache files.
+.cache
+.vite
