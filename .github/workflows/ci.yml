@@ -1,0 +1,81 @@
+# Name shown in GitHub Actions tab
+name: Student Task Manager CI
+
+# This workflow runs when we push code or create a pull request
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Jobs are the tasks GitHub will run automatically
+jobs:
+  # Backend job checks FastAPI backend
+  backend-check:
+    # GitHub will use an Ubuntu machine for this job
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download our GitHub repository code into the runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Python 3.11
+      # We use Python 3.11 because our Docker backend also uses Python 3.11
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      # Step 3: Install backend dependencies
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Check Python files for syntax errors
+      # This does not run the app fully. It checks if Python code can compile.
+      - name: Check backend Python syntax
+        working-directory: backend
+        run: |
+          python -m compileall .
+
+      # Step 5: Try importing the FastAPI app
+      # If imports are broken, this step will fail.
+      - name: Check FastAPI app import
+        working-directory: backend
+        run: |
+          python -c "from main import app; print(app.title)"
+
+  # Frontend job checks React frontend
+  frontend-check:
+    # GitHub will use an Ubuntu machine for this job
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download our GitHub repository code into the runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js 20
+      # We use Node 20 because our frontend Dockerfile also uses Node 20.
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      # Step 3: Install frontend dependencies
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: |
+          npm install
+
+      # Step 4: Build frontend
+      # If TypeScript or React has errors, this step will fail.
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm run build
